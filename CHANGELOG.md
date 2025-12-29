@@ -1,0 +1,1 @@
+# Changelog\n\n## 0.1.0\n- Initial public release: sidebar chat + WSL council + per-project memory.\n

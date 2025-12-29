@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https: data:; style-src 'unsafe-inline'; script-src 'nonce-__NONCE__';">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Unified AI Council</title>
+  <style>
+    :root {
+      --bg: var(--vscode-sideBar-background);
+      --panel: var(--vscode-editor-background);
+      --fg: var(--vscode-foreground);
+      --muted: var(--vscode-descriptionForeground);
+      --border: var(--vscode-panel-border);
+      --btn: var(--vscode-button-background);
+      --btnfg: var(--vscode-button-foreground);
+      --btnhover: var(--vscode-button-hoverBackground);
+    }
+    body { margin:0; padding:0; color:var(--fg); background:var(--bg); font-family: system-ui, -apple-system, Segoe UI, sans-serif; }
+    .wrap { display:flex; flex-direction:column; height:100vh; }
+    header { padding:10px 10px 8px; border-bottom:1px solid var(--border); background:rgba(0,0,0,0.05); }
+    .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .title { font-weight:700; letter-spacing:0.3px; }
+    .modes { display:flex; gap:6px; }
+    .toggle { border:1px solid var(--border); background:transparent; color:var(--fg); padding:6px 10px; border-radius:10px; cursor:pointer; font-size:12px; }
+    .toggle.active { background:var(--btn); color:var(--btnfg); border-color:transparent; }
+    .pill { font-size:11px; color:var(--muted); padding:4px 8px; border:1px solid var(--border); border-radius:999px; }
+    .content { padding:10px; overflow:auto; flex:1; }
+    .msg { margin: 10px 0; padding:10px; border-radius:14px; border:1px solid var(--border); background:var(--panel); }
+    .msg.user { background: rgba(124, 58, 237, 0.12); }
+    .msg.ai { background: rgba(6, 182, 212, 0.12); }
+    .msg .meta { font-size:11px; color:var(--muted); margin-bottom:6px; display:flex; justify-content:space-between; gap:8px; }
+    pre { white-space:pre-wrap; word-break:break-word; margin:0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size:12px; }
+    footer { padding:10px; border-top:1px solid var(--border); display:flex; gap:8px; }
+    textarea { flex:1; resize:none; padding:10px; border-radius:12px; border:1px solid var(--border); background:var(--panel); color:var(--fg); height:64px; }
+    button.primary { background:var(--btn); color:var(--btnfg); border:none; padding:10px 14px; border-radius:12px; cursor:pointer; }
+    button.primary:hover { background:var(--btnhover); }
+    button.secondary { background:transparent; border:1px solid var(--border); color:var(--fg); padding:10px 14px; border-radius:12px; cursor:pointer; }
+    .small { padding:6px 10px; border-radius:10px; font-size:12px; }
+    .status { padding:8px 10px; border-top:1px dashed var(--border); font-size:12px; color:var(--muted); }
+    .right { margin-left:auto; display:flex; gap:6px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="row">
+      <div class="title">Unified AI Council</div>
+      <div class="pill" id="workspacePill">workspace: —</div>
+      <div class="right">
+        <button class="secondary small" id="setupBtn">Setup</button>
+        <button class="secondary small" id="resetMemoryBtn">Reset Memory</button>
+      </div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div class="modes" id="modes">
+        <button class="toggle active" data-mode="plan">Plan</button>
+        <button class="toggle" data-mode="refactor">Refactor</button>
+        <button class="toggle" data-mode="debug">Debug</button>
+        <button class="toggle" data-mode="act">Act</button>
+      </div>
+      <div class="toggles" id="optionToggles" aria-label="Council toggles">
+        <label class="toggleLabel"><input id="toggleArchitect" type="checkbox" checked /> Architect pre-pass</label>
+        <label class="toggleLabel"><input id="toggleMemory" type="checkbox" checked /> Project memory</label>
+        <label class="toggleLabel"><input id="toggleConsensus" type="checkbox" checked /> Consensus required</label>
+        <label class="toggleLabel"><input id="toggleFast" type="checkbox" /> Fast mode</label>
+      </div>
+      <div class="pill" id="modeHint">mode: plan</div>
+    </div>
+  </header>
+
+  <div class="content" id="chat"></div>
+  <div class="status" id="status">Ready.</div>
+
+  <footer>
+    <textarea id="input" placeholder="Ask the council… (Ctrl+Enter to send)"></textarea>
+    <button class="primary" id="send">Send</button>
+  </footer>
+</div>
+
+<script nonce="__NONCE__">
+  const vscode = acquireVsCodeApi();
+  const chat = document.getElementById('chat');
+  const input = document.getElementById('input');
+  const statusEl = document.getElementById('status');
+  const modeHint = document.getElementById('modeHint');
+  const workspacePill = document.getElementById('workspacePill');
+
+  let mode = 'plan';
+  let state = vscode.getState() || { messages: [], mode: 'plan', workspaceName: '' };
+  mode = state.mode || 'plan';
+
+  function setStatus(t){ statusEl.textContent = t; }
+
+  function render(){
+    chat.innerHTML = '';
+    for(const m of state.messages){
+      const div = document.createElement('div');
+      div.className = 'msg ' + (m.role === 'user' ? 'user' : 'ai');
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.innerHTML = `<span>${m.role === 'user' ? 'You' : 'Council'}</span><span>${new Date(m.ts).toLocaleTimeString()}</span>`;
+      const pre = document.createElement('pre');
+      pre.textContent = m.content;
+      div.appendChild(meta);
+      div.appendChild(pre);
+      chat.appendChild(div);
+    }
+    modeHint.textContent = `mode: ${mode}`;
+    workspacePill.textContent = `workspace: ${state.workspaceName || '—'}`;
+    vscode.setState(state);
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  function setMode(newMode){
+    mode = newMode;
+    state.mode = mode;
+    document.querySelectorAll('.toggle').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.mode === mode);
+    });
+    render();
+  }
+
+  document.getElementById('modes').addEventListener('click', (e) => {
+    const btn = e.target.closest('.toggle');
+    if(!btn) return;
+    setMode(btn.dataset.mode);
+  });
+
+  document.getElementById('send').addEventListener('click', () => {
+    const text = input.value.trim();
+    if(!text) return;
+    state.messages.push({ role:'user', content:text, ts: Date.now() });
+    input.value = '';
+    render();
+    setStatus('Running council…');
+    const opts = {
+      architect: document.getElementById('toggleArchitect')?.checked ?? true,
+      memory: document.getElementById('toggleMemory')?.checked ?? true,
+      consensus: document.getElementById('toggleConsensus')?.checked ?? true,
+      fast: document.getElementById('toggleFast')?.checked ?? false
+    };
+    vscode.postMessage({ type:'userMessage', mode, options: opts, text });
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){
+      document.getElementById('send').click();
+    }
+  });
+
+  document.getElementById('setupBtn').addEventListener('click', () => vscode.postMessage({ type:'setup' }));
+  document.getElementById('resetMemoryBtn').addEventListener('click', () => vscode.postMessage({ type:'resetMemory' }));
+
+  window.addEventListener('message', (event) => {
+    const msg = event.data;
+    if(msg.type === 'workspaceInfo'){
+      state.workspaceName = msg.workspaceName || '';
+      render();
+      return;
+    }
+    if(msg.type === 'councilResult'){
+      state.messages.push({ role:'ai', content: msg.text, ts: Date.now() });
+      setStatus('Ready.');
+      render();
+      return;
+    }
+    if(msg.type === 'status'){
+      setStatus(msg.text);
+    }
+  });
+
+  render();
+  vscode.postMessage({ type:'ready' });
+</script>
+</body>
+</html>

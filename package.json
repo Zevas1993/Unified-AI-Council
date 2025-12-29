@@ -1,0 +1,150 @@
+{
+  "name": "unified-ai-council",
+  "displayName": "Unified AI Council",
+  "description": "One chat, three AI coding CLIs (Codex + Claude Code + Gemini) orchestrated as a council inside VS Code.",
+  "version": "0.1.0",
+  "publisher": "YOUR_PUBLISHER_NAME",
+  "engines": {
+    "vscode": "^1.92.0"
+  },
+  "categories": [
+    "AI",
+    "Other"
+  ],
+  "activationEvents": [
+    "onView:unifiedAiCouncil.sidebar",
+    "onCommand:unifiedAiCouncil.open",
+    "onCommand:unifiedAiCouncil.setup",
+    "onCommand:unifiedAiCouncil.resetMemory"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "unifiedAiCouncil",
+          "title": "Unified AI Council",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "unifiedAiCouncil": [
+        {
+          "id": "unifiedAiCouncil.sidebar",
+          "name": "Council Chat"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "unifiedAiCouncil.open",
+        "title": "Unified AI Council: Open"
+      },
+      {
+        "command": "unifiedAiCouncil.setup",
+        "title": "Unified AI Council: Setup OAuth (WSL)"
+      },
+      {
+        "command": "unifiedAiCouncil.resetMemory",
+        "title": "Unified AI Council: Reset Project Memory"
+      }
+    ],
+    "configuration": {
+      "title": "Unified AI Council",
+      "properties": {
+        "unifiedAiCouncil.wsl.distro": {
+          "type": "string",
+          "default": "",
+          "description": "Optional WSL distro name (e.g., Ubuntu). Leave blank to use default."
+        },
+        "unifiedAiCouncil.wsl.shell": {
+          "type": "string",
+          "default": "bash",
+          "description": "WSL shell to use (bash recommended)."
+        },
+        "unifiedAiCouncil.cli.codex.command": {
+          "type": "string",
+          "default": "codex",
+          "description": "Codex CLI command inside WSL."
+        },
+        "unifiedAiCouncil.cli.claude.command": {
+          "type": "string",
+          "default": "claude",
+          "description": "Claude Code CLI command inside WSL."
+        },
+        "unifiedAiCouncil.cli.gemini.command": {
+          "type": "string",
+          "default": "gemini",
+          "description": "Gemini CLI command inside WSL."
+        },
+        "unifiedAiCouncil.cli.timeoutMs": {
+          "type": "number",
+          "default": 180000,
+          "description": "Timeout per council member run (ms)."
+        },
+        "unifiedAiCouncil.memory.maxEntries": {
+          "type": "number",
+          "default": 500,
+          "description": "Max memory entries stored per workspace."
+        },
+        "unifiedAiCouncil.orchestrator.engine": {
+          "type": "string",
+          "default": "nano",
+          "enum": [
+            "nano",
+            "ollama"
+          ],
+          "description": "Orchestrator engine. 'nano' is embedded. 'ollama' uses a user-local Ollama model for final synthesis (never sends data to a cloud API)."
+        },
+
+        "unifiedAiCouncil.orchestrator.ollama.baseUrl": {
+          "type": "string",
+          "default": "http://localhost:11434",
+          "description": "Ollama base URL used when orchestrator.engine = 'ollama'."
+        },
+        "unifiedAiCouncil.orchestrator.ollama.model": {
+          "type": "string",
+          "default": "llama3.2:3b",
+          "description": "Ollama model name used when orchestrator.engine = 'ollama'."
+        },
+        "unifiedAiCouncil.orchestrator.ollama.temperature": {
+          "type": "number",
+          "default": 0.2,
+          "description": "Sampling temperature for the local synthesizer. Lower = more deterministic."
+        },
+        "unifiedAiCouncil.orchestrator.ollama.topP": {
+          "type": "number",
+          "default": 0.95,
+          "description": "Top-p nucleus sampling for the local synthesizer."
+        },
+        "unifiedAiCouncil.orchestrator.ollama.maxTokens": {
+          "type": "number",
+          "default": 900,
+          "description": "Max tokens requested from the local synthesizer."
+        },
+        "unifiedAiCouncil.orchestrator.maxContextChars": {
+          "type": "number",
+          "default": 14000,
+          "description": "Maximum context passed to each CLI (characters)."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -watch -p .",
+    "lint": "eslint src --ext ts",
+    "test": "vitest run",
+    "package": "vsce package",
+    "prepublishOnly": "npm run compile"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.10",
+    "@types/vscode": "^1.92.0",
+    "eslint": "^9.8.0",
+    "typescript": "^5.5.4",
+    "vitest": "^2.1.8",
+    "vsce": "^2.15.0"
+  }
+}
