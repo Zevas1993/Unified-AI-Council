@@ -84,7 +84,10 @@ export class LocalModelSynthesizer {
     });
 
     if (!res.ok) {
-      const text = await res.text().catch(() => '');
+      const text = await res.text().catch((e) => {
+        this.output.appendLine(`[UAC] Failed to read error response body: ${e instanceof Error ? e.message : String(e)}`);
+        return '';
+      });
       throw new Error(`Ollama /api/generate failed: HTTP ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`);
     }
 

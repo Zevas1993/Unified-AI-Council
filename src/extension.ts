@@ -86,9 +86,9 @@ class CouncilSidebarProvider implements vscode.WebviewViewProvider {
         }
 
         if (msg.type === 'userMessage') {
-          const mode = (msg.mode as CouncilMode) ?? 'plan';
+          const mode = isValidCouncilMode(msg.mode) ? msg.mode : 'plan';
           const text = String(msg.text ?? '').trim();
-          const options = (msg.options ?? {}) as any;
+          const options = parseCouncilOptions(msg.options);
           if (!text) return;
 
           webviewView.webview.postMessage({ type: 'status', text: 'Running council…' });
@@ -104,9 +104,9 @@ class CouncilSidebarProvider implements vscode.WebviewViewProvider {
     });
   }
 
-  private getHtml(webview: vscode.Webview): string {
+  private getHtml(_webview: vscode.Webview): string {
     const htmlPath = vscode.Uri.joinPath(this.extensionUri, 'webview', 'index.html');
-    const html = fs.readFileSync(htmlPath.fsPath, 'utf8') as string;
+    const html = fs.readFileSync(htmlPath.fsPath, 'utf8');
     const nonce = getNonce();
     return html.replaceAll('__NONCE__', nonce);
   }
@@ -115,4 +115,26 @@ class CouncilSidebarProvider implements vscode.WebviewViewProvider {
 function getNonce(): string {
   // CSP nonces should be unpredictable; use crypto.
   return randomBytes(16).toString('base64');
+}
+
+/** Valid council modes - must match CouncilMode type in modes.ts */
+const VALID_MODES: CouncilMode[] = ['plan', 'refactor', 'debug', 'act'];
+
+/** Type guard for CouncilMode */
+function isValidCouncilMode(value: unknown): value is CouncilMode {
+  return typeof value === 'string' && VALID_MODES.includes(value as CouncilMode);
+}
+
+/** Parse and validate council run options from webview message */
+function parseCouncilOptions(options: unknown): { architect?: boolean; memory?: boolean; consensus?: boolean; fast?: boolean } {
+  if (!options || typeof options !== 'object') {
+    return {};
+  }
+  const opts = options as Record<string, unknown>;
+  return {
+    architect: typeof opts.architect === 'boolean' ? opts.architect : undefined,
+    memory: typeof opts.memory === 'boolean' ? opts.memory : undefined,
+    consensus: typeof opts.consensus === 'boolean' ? opts.consensus : undefined,
+    fast: typeof opts.fast === 'boolean' ? opts.fast : undefined,
+  };
 }

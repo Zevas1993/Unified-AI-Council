@@ -121,7 +121,11 @@ async function runWsl(
     let stderr = '';
 
     const timer = setTimeout(() => {
-      try { child.kill(); } catch {}
+      try {
+        child.kill();
+      } catch (e) {
+        output.appendLine(`[${member}] Failed to kill timed-out process: ${e instanceof Error ? e.message : String(e)}`);
+      }
       reject(new Error(`${member} timed out after ${timeoutMs}ms`));
     }, timeoutMs);
 

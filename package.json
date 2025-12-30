@@ -3,12 +3,34 @@
   "displayName": "Unified AI Council",
   "description": "One chat, three AI coding CLIs (Codex + Claude Code + Gemini) orchestrated as a council inside VS Code.",
   "version": "0.1.0",
-  "publisher": "YOUR_PUBLISHER_NAME",
+  "publisher": "Zevas1993",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Zevas1993/Unified-AI-Council.git"
+  },
+  "homepage": "https://github.com/Zevas1993/Unified-AI-Council#readme",
+  "bugs": {
+    "url": "https://github.com/Zevas1993/Unified-AI-Council/issues"
+  },
+  "keywords": [
+    "ai",
+    "codex",
+    "claude",
+    "gemini",
+    "council",
+    "orchestrator",
+    "coding-assistant",
+    "multi-agent",
+    "wsl"
+  ],
   "engines": {
-    "vscode": "^1.92.0"
+    "vscode": "^1.92.0",
+    "node": ">=18.0.0"
   },
   "categories": [
     "AI",
+    "Machine Learning",
     "Other"
   ],
   "activationEvents": [
@@ -97,7 +119,6 @@
           ],
           "description": "Orchestrator engine. 'nano' is embedded. 'ollama' uses a user-local Ollama model for final synthesis (never sends data to a cloud API)."
         },
-
         "unifiedAiCouncil.orchestrator.ollama.baseUrl": {
           "type": "string",
           "default": "http://localhost:11434",
@@ -134,16 +155,18 @@
   "scripts": {
     "compile": "tsc -p .",
     "watch": "tsc -watch -p .",
-    "lint": "eslint src --ext ts",
+    "lint": "eslint src",
     "test": "vitest run",
     "package": "vsce package",
     "prepublishOnly": "npm run compile"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.2",
     "@types/node": "^20.14.10",
     "@types/vscode": "^1.92.0",
     "eslint": "^9.8.0",
     "typescript": "^5.5.4",
+    "typescript-eslint": "^8.51.0",
     "vitest": "^2.1.8",
     "vsce": "^2.15.0"
   }

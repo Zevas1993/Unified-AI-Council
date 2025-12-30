@@ -41,6 +41,11 @@ export class Settings {
     return Number.isFinite(n) && n > 1000 ? n : 14000;
   }
 
+  memoryMaxEntries(): number {
+    const n = Number(this.cfg().get('memory.maxEntries') ?? 500);
+    return Number.isFinite(n) && n > 10 ? n : 500;
+  }
+
   orchestratorEngine(): 'nano' | 'ollama' {
     const v = String(this.cfg().get('orchestrator.engine') ?? 'nano').trim();
     return v === 'ollama' ? 'ollama' : 'nano';
@@ -51,14 +56,14 @@ export class Settings {
     const baseUrl = String(cfg.get('orchestrator.ollama.baseUrl') ?? 'http://localhost:11434').trim() || 'http://localhost:11434';
     const model = String(cfg.get('orchestrator.ollama.model') ?? 'llama3.2:3b').trim() || 'llama3.2:3b';
     const temperature = Number(cfg.get('orchestrator.ollama.temperature') ?? 0.2);
-    const topP = Number(cfg.get('orchestrator.ollama.topP') ?? 0.9);
-    const maxTokens = Number(cfg.get('orchestrator.ollama.maxTokens') ?? 800);
+    const topP = Number(cfg.get('orchestrator.ollama.topP') ?? 0.95);
+    const maxTokens = Number(cfg.get('orchestrator.ollama.maxTokens') ?? 900);
     return {
       baseUrl,
       model,
       temperature: Number.isFinite(temperature) ? temperature : 0.2,
-      topP: Number.isFinite(topP) ? topP : 0.9,
-      maxTokens: Number.isFinite(maxTokens) && maxTokens > 50 ? maxTokens : 800,
+      topP: Number.isFinite(topP) ? topP : 0.95,
+      maxTokens: Number.isFinite(maxTokens) && maxTokens > 50 ? maxTokens : 900,
     };
   }
 }

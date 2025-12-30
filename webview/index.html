@@ -22,7 +22,8 @@
     .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
     .title { font-weight:700; letter-spacing:0.3px; }
     .modes { display:flex; gap:6px; }
-    .toggle { border:1px solid var(--border); background:transparent; color:var(--fg); padding:6px 10px; border-radius:10px; cursor:pointer; font-size:12px; }
+    .toggle { border:1px solid var(--border); background:transparent; color:var(--fg); padding:6px 10px; border-radius:10px; cursor:pointer; font-size:12px; transition: background 0.15s, color 0.15s; }
+    .toggle:focus { outline: 2px solid var(--btn); outline-offset: 2px; }
     .toggle.active { background:var(--btn); color:var(--btnfg); border-color:transparent; }
     .pill { font-size:11px; color:var(--muted); padding:4px 8px; border:1px solid var(--border); border-radius:999px; }
     .content { padding:10px; overflow:auto; flex:1; }
@@ -33,48 +34,58 @@
     pre { white-space:pre-wrap; word-break:break-word; margin:0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size:12px; }
     footer { padding:10px; border-top:1px solid var(--border); display:flex; gap:8px; }
     textarea { flex:1; resize:none; padding:10px; border-radius:12px; border:1px solid var(--border); background:var(--panel); color:var(--fg); height:64px; }
-    button.primary { background:var(--btn); color:var(--btnfg); border:none; padding:10px 14px; border-radius:12px; cursor:pointer; }
-    button.primary:hover { background:var(--btnhover); }
+    textarea:focus { outline: 2px solid var(--btn); outline-offset: 1px; }
+    button.primary { background:var(--btn); color:var(--btnfg); border:none; padding:10px 14px; border-radius:12px; cursor:pointer; transition: background 0.15s, opacity 0.15s; }
+    button.primary:hover:not(:disabled) { background:var(--btnhover); }
+    button.primary:disabled { opacity: 0.6; cursor: not-allowed; }
+    button.primary:focus { outline: 2px solid var(--btnfg); outline-offset: 2px; }
     button.secondary { background:transparent; border:1px solid var(--border); color:var(--fg); padding:10px 14px; border-radius:12px; cursor:pointer; }
+    button.secondary:focus { outline: 2px solid var(--btn); outline-offset: 2px; }
     .small { padding:6px 10px; border-radius:10px; font-size:12px; }
     .status { padding:8px 10px; border-top:1px dashed var(--border); font-size:12px; color:var(--muted); }
     .right { margin-left:auto; display:flex; gap:6px; }
+    .toggles { display:flex; gap:8px; flex-wrap:wrap; }
+    .toggleLabel { display:flex; align-items:center; gap:4px; font-size:11px; color:var(--muted); cursor:pointer; }
+    .toggleLabel input[type="checkbox"] { margin:0; cursor:pointer; }
+    .toggleLabel:hover { color:var(--fg); }
+    .loading { display:inline-block; width:12px; height:12px; border:2px solid var(--muted); border-top-color:var(--btn); border-radius:50%; animation:spin 0.8s linear infinite; margin-right:6px; vertical-align:middle; }
+    @keyframes spin { to { transform:rotate(360deg); } }
   </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <div class="row">
-      <div class="title">Unified AI Council</div>
-      <div class="pill" id="workspacePill">workspace: —</div>
+      <h1 class="title">Unified AI Council</h1>
+      <div class="pill" id="workspacePill" aria-label="Current workspace">workspace: —</div>
       <div class="right">
-        <button class="secondary small" id="setupBtn">Setup</button>
-        <button class="secondary small" id="resetMemoryBtn">Reset Memory</button>
+        <button class="secondary small" id="setupBtn" aria-label="Open CLI setup wizard">Setup</button>
+        <button class="secondary small" id="resetMemoryBtn" aria-label="Clear project memory">Reset Memory</button>
       </div>
     </div>
     <div class="row" style="margin-top:8px">
-      <div class="modes" id="modes">
-        <button class="toggle active" data-mode="plan">Plan</button>
-        <button class="toggle" data-mode="refactor">Refactor</button>
-        <button class="toggle" data-mode="debug">Debug</button>
-        <button class="toggle" data-mode="act">Act</button>
+      <div class="modes" id="modes" role="tablist" aria-label="Council mode selection">
+        <button class="toggle active" data-mode="plan" role="tab" aria-selected="true" aria-label="Plan mode - architecture and design">Plan</button>
+        <button class="toggle" data-mode="refactor" role="tab" aria-selected="false" aria-label="Refactor mode - code improvements">Refactor</button>
+        <button class="toggle" data-mode="debug" role="tab" aria-selected="false" aria-label="Debug mode - troubleshooting">Debug</button>
+        <button class="toggle" data-mode="act" role="tab" aria-selected="false" aria-label="Act mode - direct actions">Act</button>
       </div>
-      <div class="toggles" id="optionToggles" aria-label="Council toggles">
-        <label class="toggleLabel"><input id="toggleArchitect" type="checkbox" checked /> Architect pre-pass</label>
-        <label class="toggleLabel"><input id="toggleMemory" type="checkbox" checked /> Project memory</label>
-        <label class="toggleLabel"><input id="toggleConsensus" type="checkbox" checked /> Consensus required</label>
-        <label class="toggleLabel"><input id="toggleFast" type="checkbox" /> Fast mode</label>
+      <div class="toggles" id="optionToggles" role="group" aria-label="Council options">
+        <label class="toggleLabel" title="Enable architect pre-pass to shape prompts"><input id="toggleArchitect" type="checkbox" checked /> Architect</label>
+        <label class="toggleLabel" title="Include project memory context"><input id="toggleMemory" type="checkbox" checked /> Memory</label>
+        <label class="toggleLabel" title="Require consensus synthesis"><input id="toggleConsensus" type="checkbox" checked /> Consensus</label>
+        <label class="toggleLabel" title="Fast mode (fewer council members)"><input id="toggleFast" type="checkbox" /> Fast</label>
       </div>
-      <div class="pill" id="modeHint">mode: plan</div>
+      <div class="pill" id="modeHint" aria-live="polite">mode: plan</div>
     </div>
   </header>
 
-  <div class="content" id="chat"></div>
-  <div class="status" id="status">Ready.</div>
+  <div class="content" id="chat" role="log" aria-live="polite" aria-label="Chat messages"></div>
+  <div class="status" id="status" role="status" aria-live="polite">Ready.</div>
 
   <footer>
-    <textarea id="input" placeholder="Ask the council… (Ctrl+Enter to send)"></textarea>
-    <button class="primary" id="send">Send</button>
+    <textarea id="input" placeholder="Ask the council… (Ctrl+Enter to send)" aria-label="Message input" autofocus></textarea>
+    <button class="primary" id="send" aria-label="Send message to council">Send</button>
   </footer>
 </div>
 
@@ -85,12 +96,29 @@
   const statusEl = document.getElementById('status');
   const modeHint = document.getElementById('modeHint');
   const workspacePill = document.getElementById('workspacePill');
+  const sendBtn = document.getElementById('send');
 
   let mode = 'plan';
+  let isRunning = false;
   let state = vscode.getState() || { messages: [], mode: 'plan', workspaceName: '' };
   mode = state.mode || 'plan';
 
-  function setStatus(t){ statusEl.textContent = t; }
+  function setStatus(t, loading = false){
+    statusEl.innerHTML = loading ? '<span class="loading"></span>' + escapeHtml(t) : escapeHtml(t);
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function setLoading(loading) {
+    isRunning = loading;
+    sendBtn.disabled = loading;
+    sendBtn.textContent = loading ? 'Running…' : 'Send';
+    input.disabled = loading;
+  }
 
   function render(){
     chat.innerHTML = '';
@@ -99,15 +127,20 @@
       div.className = 'msg ' + (m.role === 'user' ? 'user' : 'ai');
       const meta = document.createElement('div');
       meta.className = 'meta';
-      meta.innerHTML = `<span>${m.role === 'user' ? 'You' : 'Council'}</span><span>${new Date(m.ts).toLocaleTimeString()}</span>`;
+      const roleSpan = document.createElement('span');
+      roleSpan.textContent = m.role === 'user' ? 'You' : 'Council';
+      const timeSpan = document.createElement('span');
+      timeSpan.textContent = new Date(m.ts).toLocaleTimeString();
+      meta.appendChild(roleSpan);
+      meta.appendChild(timeSpan);
       const pre = document.createElement('pre');
       pre.textContent = m.content;
       div.appendChild(meta);
       div.appendChild(pre);
       chat.appendChild(div);
     }
-    modeHint.textContent = `mode: ${mode}`;
-    workspacePill.textContent = `workspace: ${state.workspaceName || '—'}`;
+    modeHint.textContent = 'mode: ' + mode;
+    workspacePill.textContent = 'workspace: ' + (state.workspaceName || '—');
     vscode.setState(state);
     chat.scrollTop = chat.scrollHeight;
   }
@@ -116,24 +149,28 @@
     mode = newMode;
     state.mode = mode;
     document.querySelectorAll('.toggle').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.mode === mode);
+      const isActive = btn.dataset.mode === mode;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
     });
     render();
   }
 
   document.getElementById('modes').addEventListener('click', (e) => {
     const btn = e.target.closest('.toggle');
-    if(!btn) return;
+    if(!btn || isRunning) return;
     setMode(btn.dataset.mode);
   });
 
   document.getElementById('send').addEventListener('click', () => {
+    if(isRunning) return;
     const text = input.value.trim();
     if(!text) return;
     state.messages.push({ role:'user', content:text, ts: Date.now() });
     input.value = '';
     render();
-    setStatus('Running council…');
+    setLoading(true);
+    setStatus('Running council…', true);
     const opts = {
       architect: document.getElementById('toggleArchitect')?.checked ?? true,
       memory: document.getElementById('toggleMemory')?.checked ?? true,
@@ -144,7 +181,7 @@
   });
 
   input.addEventListener('keydown', (e) => {
-    if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){
+    if(e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !isRunning){
       document.getElementById('send').click();
     }
   });
@@ -161,12 +198,18 @@
     }
     if(msg.type === 'councilResult'){
       state.messages.push({ role:'ai', content: msg.text, ts: Date.now() });
+      setLoading(false);
       setStatus('Ready.');
       render();
+      input.focus();
       return;
     }
     if(msg.type === 'status'){
-      setStatus(msg.text);
+      const isRunningStatus = msg.text.toLowerCase().includes('running');
+      setStatus(msg.text, isRunningStatus);
+      if(!isRunningStatus && isRunning) {
+        setLoading(false);
+      }
     }
   });
 

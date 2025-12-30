@@ -85,7 +85,8 @@ export class ProjectMemory {
       return entries.slice(0, 40)
         .map(([name, type]) => `${type === vscode.FileType.Directory ? 'dir ' : 'file'}: ${name}`)
         .join('\n') || '(workspace empty)';
-    } catch {
+    } catch (e) {
+      this.output.appendLine(`[memory] Failed to read workspace directory: ${e instanceof Error ? e.message : String(e)}`);
       return '(unable to read workspace)';
     }
   }
@@ -102,7 +103,7 @@ function randomId(): string {
 }
 
 function extractKeywords(s: string): Set<string> {
-  const words = s.toLowerCase().match(/[a-z0-9_\-]{3,}/g) ?? [];
+  const words = s.toLowerCase().match(/[a-z0-9_-]{3,}/g) ?? [];
   const stop = new Set(['the','and','for','with','that','this','from','into','your','you','are','was','were','will','have','has','had','about']);
   const out = new Set<string>();
   for (const w of words) if (!stop.has(w)) out.add(w);

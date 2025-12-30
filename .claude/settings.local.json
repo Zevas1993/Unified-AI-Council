@@ -14,7 +14,14 @@
       "Bash(npm run package:*)",
       "Bash(git init:*)",
       "Bash(git remote add:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nInitial commit: Unified AI Council VS Code Extension v0.1.0\n\nFeatures:\n- Council orchestration with 3 AI CLIs \\(Codex, Claude, Gemini\\)\n- WSL-based CLI execution for cross-platform support\n- Multiple council modes \\(plan, code, review, ask, refactor\\)\n- JSONL-based project memory persistence\n- Optional Ollama local model synthesis\n- Security-first command validation with allowlist\n- Webview panel with CSP nonce protection\nEOF\n\\)\")",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(git fetch:*)",
+      "Bash(npm ls:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npm install:*)"
     ]
   }
 }

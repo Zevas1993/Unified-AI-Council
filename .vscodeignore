@@ -1,0 +1,35 @@
+# Source files (compiled to dist/)
+src/**
+*.ts
+!dist/**
+
+# Development files
+.vscode/**
+.vscode-test/**
+.github/**
+.claude/**
+
+# Config files
+tsconfig.json
+eslint.config.js
+vitest.config.ts
+vitest.config.js
+vitest.config.js.map
+.editorconfig
+.prettierrc.json
+
+# Test files
+**/*.test.ts
+**/*.spec.ts
+
+# Git
+.git/**
+.gitignore
+
+# Misc
+node_modules/**
+*.vsix
+*.md
+!README.md
+!CHANGELOG.md
+!LICENSE
