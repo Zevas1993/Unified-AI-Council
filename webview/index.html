@@ -15,78 +15,830 @@
       --btn: var(--vscode-button-background);
       --btnfg: var(--vscode-button-foreground);
       --btnhover: var(--vscode-button-hoverBackground);
+      --success: #10b981;
+      --warning: #f59e0b;
+      --error: #ef4444;
     }
-    body { margin:0; padding:0; color:var(--fg); background:var(--bg); font-family: system-ui, -apple-system, Segoe UI, sans-serif; }
-    .wrap { display:flex; flex-direction:column; height:100vh; }
-    header { padding:10px 10px 8px; border-bottom:1px solid var(--border); background:rgba(0,0,0,0.05); }
-    .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    .title { font-weight:700; letter-spacing:0.3px; }
-    .modes { display:flex; gap:6px; }
-    .toggle { border:1px solid var(--border); background:transparent; color:var(--fg); padding:6px 10px; border-radius:10px; cursor:pointer; font-size:12px; transition: background 0.15s, color 0.15s; }
-    .toggle:focus { outline: 2px solid var(--btn); outline-offset: 2px; }
-    .toggle.active { background:var(--btn); color:var(--btnfg); border-color:transparent; }
-    .pill { font-size:11px; color:var(--muted); padding:4px 8px; border:1px solid var(--border); border-radius:999px; }
-    .content { padding:10px; overflow:auto; flex:1; }
-    .msg { margin: 10px 0; padding:10px; border-radius:14px; border:1px solid var(--border); background:var(--panel); }
-    .msg.user { background: rgba(124, 58, 237, 0.12); }
-    .msg.ai { background: rgba(6, 182, 212, 0.12); }
-    .msg .meta { font-size:11px; color:var(--muted); margin-bottom:6px; display:flex; justify-content:space-between; gap:8px; }
-    pre { white-space:pre-wrap; word-break:break-word; margin:0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size:12px; }
-    footer { padding:10px; border-top:1px solid var(--border); display:flex; gap:8px; }
-    textarea { flex:1; resize:none; padding:10px; border-radius:12px; border:1px solid var(--border); background:var(--panel); color:var(--fg); height:64px; }
-    textarea:focus { outline: 2px solid var(--btn); outline-offset: 1px; }
-    button.primary { background:var(--btn); color:var(--btnfg); border:none; padding:10px 14px; border-radius:12px; cursor:pointer; transition: background 0.15s, opacity 0.15s; }
-    button.primary:hover:not(:disabled) { background:var(--btnhover); }
-    button.primary:disabled { opacity: 0.6; cursor: not-allowed; }
-    button.primary:focus { outline: 2px solid var(--btnfg); outline-offset: 2px; }
-    button.secondary { background:transparent; border:1px solid var(--border); color:var(--fg); padding:10px 14px; border-radius:12px; cursor:pointer; }
-    button.secondary:focus { outline: 2px solid var(--btn); outline-offset: 2px; }
-    .small { padding:6px 10px; border-radius:10px; font-size:12px; }
-    .status { padding:8px 10px; border-top:1px dashed var(--border); font-size:12px; color:var(--muted); }
-    .right { margin-left:auto; display:flex; gap:6px; }
-    .toggles { display:flex; gap:8px; flex-wrap:wrap; }
-    .toggleLabel { display:flex; align-items:center; gap:4px; font-size:11px; color:var(--muted); cursor:pointer; }
-    .toggleLabel input[type="checkbox"] { margin:0; cursor:pointer; }
-    .toggleLabel:hover { color:var(--fg); }
-    .loading { display:inline-block; width:12px; height:12px; border:2px solid var(--muted); border-top-color:var(--btn); border-radius:50%; animation:spin 0.8s linear infinite; margin-right:6px; vertical-align:middle; }
-    @keyframes spin { to { transform:rotate(360deg); } }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 0;
+      color: var(--fg);
+      background: var(--bg);
+      font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+      font-size: 13px;
+    }
+
+    .wrap {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    /* Header */
+    header {
+      padding: 10px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0,0,0,0.03);
+    }
+
+    .header-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .title {
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 0.3px;
+      margin: 0;
+    }
+
+    .header-actions {
+      margin-left: auto;
+      display: flex;
+      gap: 6px;
+    }
+
+    /* Mode Selector Dropdown */
+    .mode-selector {
+      position: relative;
+      margin-top: 10px;
+    }
+
+    .mode-trigger {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 8px 12px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--fg);
+      cursor: pointer;
+      text-align: left;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .mode-trigger:hover {
+      border-color: var(--btn);
+    }
+
+    .mode-trigger:focus {
+      outline: 2px solid var(--btn);
+      outline-offset: 2px;
+    }
+
+    .mode-icon {
+      font-size: 16px;
+    }
+
+    .mode-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .mode-name {
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .mode-desc {
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .mode-arrow {
+      font-size: 10px;
+      color: var(--muted);
+      transition: transform 0.2s;
+    }
+
+    .mode-trigger.open .mode-arrow {
+      transform: rotate(180deg);
+    }
+
+    .mode-dropdown {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      margin-top: 4px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 100;
+      overflow: hidden;
+    }
+
+    .mode-dropdown.open {
+      display: block;
+    }
+
+    .mode-search {
+      width: 100%;
+      padding: 8px 12px;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      background: transparent;
+      color: var(--fg);
+      font-size: 12px;
+    }
+
+    .mode-search:focus {
+      outline: none;
+      background: rgba(0,0,0,0.03);
+    }
+
+    .mode-search::placeholder {
+      color: var(--muted);
+    }
+
+    .mode-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: background 0.15s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .mode-option:hover {
+      background: rgba(0,0,0,0.05);
+    }
+
+    .mode-option.active {
+      background: rgba(var(--btn), 0.1);
+    }
+
+    .mode-option.hidden {
+      display: none;
+    }
+
+    .mode-option .icon {
+      font-size: 18px;
+    }
+
+    .mode-option .text {
+      flex: 1;
+    }
+
+    .mode-option .text .name {
+      font-weight: 500;
+      font-size: 13px;
+    }
+
+    .mode-option .text .desc {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .mode-option .check {
+      color: var(--success);
+      font-weight: bold;
+      opacity: 0;
+    }
+
+    .mode-option.active .check {
+      opacity: 1;
+    }
+
+    /* Council Status Indicators */
+    .council-status {
+      display: flex;
+      gap: 12px;
+      margin-top: 8px;
+      padding: 6px 0;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .council-status .member {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .council-status .dot {
+      font-size: 10px;
+    }
+
+    .council-status .dot.pending {
+      color: var(--muted);
+    }
+
+    .council-status .dot.running {
+      color: var(--warning);
+      animation: pulse 1s infinite;
+    }
+
+    .council-status .dot.success {
+      color: var(--success);
+    }
+
+    .council-status .dot.error {
+      color: var(--error);
+    }
+
+    .council-status .dot.skipped {
+      color: var(--muted);
+      opacity: 0.5;
+    }
+
+    /* Visually hidden but accessible to screen readers */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* Options toggles */
+    .options-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px dashed var(--border);
+    }
+
+    .toggleLabel {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: var(--muted);
+      cursor: pointer;
+      transition: color 0.15s;
+    }
+
+    .toggleLabel:hover {
+      color: var(--fg);
+    }
+
+    .toggleLabel input[type="checkbox"] {
+      margin: 0;
+      cursor: pointer;
+    }
+
+    /* Content area */
+    .content {
+      flex: 1;
+      overflow: auto;
+      padding: 10px;
+    }
+
+    /* Empty state */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      text-align: center;
+      padding: 20px;
+      color: var(--muted);
+    }
+
+    .empty-state.hidden {
+      display: none;
+    }
+
+    .empty-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .empty-state h2 {
+      margin: 0 0 8px;
+      color: var(--fg);
+      font-size: 16px;
+    }
+
+    .empty-state p {
+      margin: 0 0 16px;
+      font-size: 13px;
+    }
+
+    .quick-prompts {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .prompt-chip {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 12px;
+      color: var(--fg);
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .prompt-chip:hover {
+      border-color: var(--btn);
+      background: rgba(0,0,0,0.05);
+    }
+
+    .prompt-chip:focus {
+      outline: 2px solid var(--btn);
+      outline-offset: 2px;
+    }
+
+    .hint {
+      font-size: 11px;
+      margin-top: 16px;
+    }
+
+    kbd {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 10px;
+    }
+
+    /* Messages */
+    .messages-container {
+      display: none;
+    }
+
+    .messages-container.visible {
+      display: block;
+    }
+
+    .msg {
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      animation: slideUp 0.2s ease-out;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .msg.user {
+      background: rgba(124, 58, 237, 0.12);
+    }
+
+    .msg.ai {
+      background: rgba(6, 182, 212, 0.12);
+    }
+
+    .msg .meta {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin: 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+    }
+
+    /* Typing indicator */
+    .typing-indicator {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .typing-indicator.visible {
+      display: flex;
+    }
+
+    .typing-dots {
+      display: flex;
+      gap: 4px;
+    }
+
+    .typing-dots span {
+      width: 6px;
+      height: 6px;
+      background: var(--muted);
+      border-radius: 50%;
+      animation: bounce 1.4s infinite;
+    }
+
+    .typing-dots span:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .typing-dots span:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: translateY(0); }
+      40% { transform: translateY(-6px); }
+    }
+
+    /* Skeleton loading */
+    .skeleton-message {
+      display: none;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+    }
+
+    .skeleton-message.visible {
+      display: block;
+    }
+
+    .skeleton-header {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .skeleton-avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: linear-gradient(90deg, var(--border) 25%, var(--panel) 50%, var(--border) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+    }
+
+    .skeleton-title {
+      width: 80px;
+      height: 14px;
+      border-radius: 4px;
+      background: linear-gradient(90deg, var(--border) 25%, var(--panel) 50%, var(--border) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+    }
+
+    .skeleton-line {
+      height: 12px;
+      border-radius: 4px;
+      margin: 8px 0;
+      background: linear-gradient(90deg, var(--border) 25%, var(--panel) 50%, var(--border) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+    }
+
+    .skeleton-line.short { width: 40%; }
+    .skeleton-line.medium { width: 70%; }
+
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* Reduced motion support for accessibility */
+    @media (prefers-reduced-motion: reduce) {
+      .council-status .dot.running {
+        animation: none;
+        opacity: 0.7;
+      }
+
+      .typing-dots span {
+        animation: none;
+      }
+
+      .msg {
+        animation: none;
+      }
+
+      .skeleton-avatar,
+      .skeleton-title,
+      .skeleton-line {
+        animation: none;
+        background: var(--border);
+      }
+
+      button.primary:active:not(:disabled),
+      button.secondary:active {
+        transform: none;
+      }
+    }
+
+    /* Status bar */
+    .status-bar {
+      padding: 6px 10px;
+      border-top: 1px dashed var(--border);
+      font-size: 11px;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .token-counter {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Footer input */
+    footer {
+      padding: 10px;
+      border-top: 1px solid var(--border);
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    textarea {
+      flex: 1;
+      resize: none;
+      padding: 10px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--fg);
+      height: 64px;
+      font-family: inherit;
+      font-size: 13px;
+    }
+
+    textarea:focus {
+      outline: 2px solid var(--btn);
+      outline-offset: 1px;
+    }
+
+    textarea::placeholder {
+      color: var(--muted);
+    }
+
+    button.primary {
+      background: var(--btn);
+      color: var(--btnfg);
+      border: none;
+      padding: 10px 14px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: background 0.15s, opacity 0.15s, transform 0.1s;
+    }
+
+    button.primary:hover:not(:disabled) {
+      background: var(--btnhover);
+    }
+
+    button.primary:active:not(:disabled) {
+      transform: scale(0.97);
+    }
+
+    button.primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    button.primary:focus {
+      outline: 2px solid var(--btnfg);
+      outline-offset: 2px;
+    }
+
+    button.secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--fg);
+      padding: 6px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 11px;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s;
+    }
+
+    button.secondary:hover {
+      background: rgba(0,0,0,0.05);
+      border-color: var(--btn);
+    }
+
+    button.secondary:active {
+      transform: scale(0.97);
+    }
+
+    button.secondary:focus {
+      outline: 2px solid var(--btn);
+      outline-offset: 2px;
+    }
+
+    /* Info footer */
+    .info-footer {
+      padding: 6px 10px;
+      border-top: 1px solid var(--border);
+      font-size: 10px;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      background: rgba(0,0,0,0.02);
+    }
+
+    .engine-info, .workspace-info {
+      display: flex;
+      gap: 4px;
+    }
+
+    .engine-value, .workspace-value {
+      color: var(--fg);
+    }
+
+    .model-name {
+      opacity: 0.7;
+    }
   </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <div class="row">
+    <div class="header-row">
       <h1 class="title">Unified AI Council</h1>
-      <div class="pill" id="workspacePill" aria-label="Current workspace">workspace: —</div>
-      <div class="right">
-        <button class="secondary small" id="setupBtn" aria-label="Open CLI setup wizard">Setup</button>
-        <button class="secondary small" id="resetMemoryBtn" aria-label="Clear project memory">Reset Memory</button>
+      <div class="header-actions">
+        <button class="secondary" id="setupBtn" aria-label="Open CLI setup wizard">Setup</button>
+        <button class="secondary" id="resetMemoryBtn" aria-label="Clear project memory">Reset</button>
       </div>
     </div>
-    <div class="row" style="margin-top:8px">
-      <div class="modes" id="modes" role="tablist" aria-label="Council mode selection">
-        <button class="toggle active" data-mode="plan" role="tab" aria-selected="true" aria-label="Plan mode - architecture and design">Plan</button>
-        <button class="toggle" data-mode="refactor" role="tab" aria-selected="false" aria-label="Refactor mode - code improvements">Refactor</button>
-        <button class="toggle" data-mode="debug" role="tab" aria-selected="false" aria-label="Debug mode - troubleshooting">Debug</button>
-        <button class="toggle" data-mode="act" role="tab" aria-selected="false" aria-label="Act mode - direct actions">Act</button>
+
+    <!-- Mode Dropdown -->
+    <div class="mode-selector">
+      <button class="mode-trigger" id="modeTrigger" aria-haspopup="listbox" aria-expanded="false">
+        <span class="mode-icon" id="currentModeIcon">📋</span>
+        <div class="mode-info">
+          <div class="mode-name" id="currentModeName">Plan</div>
+          <div class="mode-desc" id="currentModeDesc">Architecture and design planning</div>
+        </div>
+        <span class="mode-arrow">▼</span>
+      </button>
+      <div class="mode-dropdown" id="modeDropdown" role="listbox" aria-label="Select council mode">
+        <input type="text" class="mode-search" id="modeSearch" placeholder="Search modes..." aria-label="Search modes" />
+        <div class="mode-option active" data-mode="plan" role="option" aria-selected="true" tabindex="0">
+          <span class="icon">📋</span>
+          <div class="text">
+            <div class="name">Plan</div>
+            <div class="desc">Architecture and design planning</div>
+          </div>
+          <span class="check">✓</span>
+        </div>
+        <div class="mode-option" data-mode="refactor" role="option" aria-selected="false" tabindex="0">
+          <span class="icon">🔧</span>
+          <div class="text">
+            <div class="name">Refactor</div>
+            <div class="desc">Code improvements and cleanup</div>
+          </div>
+          <span class="check">✓</span>
+        </div>
+        <div class="mode-option" data-mode="debug" role="option" aria-selected="false" tabindex="0">
+          <span class="icon">🐛</span>
+          <div class="text">
+            <div class="name">Debug</div>
+            <div class="desc">Diagnose and fix issues</div>
+          </div>
+          <span class="check">✓</span>
+        </div>
+        <div class="mode-option" data-mode="act" role="option" aria-selected="false" tabindex="0">
+          <span class="icon">⚡</span>
+          <div class="text">
+            <div class="name">Act</div>
+            <div class="desc">Execute direct actions</div>
+          </div>
+          <span class="check">✓</span>
+        </div>
       </div>
-      <div class="toggles" id="optionToggles" role="group" aria-label="Council options">
-        <label class="toggleLabel" title="Enable architect pre-pass to shape prompts"><input id="toggleArchitect" type="checkbox" checked /> Architect</label>
-        <label class="toggleLabel" title="Include project memory context"><input id="toggleMemory" type="checkbox" checked /> Memory</label>
-        <label class="toggleLabel" title="Require consensus synthesis"><input id="toggleConsensus" type="checkbox" checked /> Consensus</label>
-        <label class="toggleLabel" title="Fast mode (fewer council members)"><input id="toggleFast" type="checkbox" /> Fast</label>
-      </div>
-      <div class="pill" id="modeHint" aria-live="polite">mode: plan</div>
+    </div>
+
+    <!-- Council Status -->
+    <div class="council-status" id="councilStatus" aria-label="Council member status">
+      <span class="member" data-cli="codex">
+        <span class="dot pending" id="dotCodex" aria-hidden="true">●</span>
+        <span>Codex</span>
+        <span class="sr-only" id="statusCodex">pending</span>
+      </span>
+      <span class="member" data-cli="claude">
+        <span class="dot pending" id="dotClaude" aria-hidden="true">●</span>
+        <span>Claude</span>
+        <span class="sr-only" id="statusClaude">pending</span>
+      </span>
+      <span class="member" data-cli="gemini">
+        <span class="dot pending" id="dotGemini" aria-hidden="true">●</span>
+        <span>Gemini</span>
+        <span class="sr-only" id="statusGemini">pending</span>
+      </span>
+    </div>
+
+    <!-- Options -->
+    <div class="options-row" role="group" aria-label="Council options">
+      <label class="toggleLabel" title="Enable architect pre-pass to shape prompts">
+        <input id="toggleArchitect" type="checkbox" checked /> Architect
+      </label>
+      <label class="toggleLabel" title="Include project memory context">
+        <input id="toggleMemory" type="checkbox" checked /> Memory
+      </label>
+      <label class="toggleLabel" title="Require consensus synthesis">
+        <input id="toggleConsensus" type="checkbox" checked /> Consensus
+      </label>
+      <label class="toggleLabel" title="Fast mode (fewer council members)">
+        <input id="toggleFast" type="checkbox" /> Fast
+      </label>
     </div>
   </header>
 
-  <div class="content" id="chat" role="log" aria-live="polite" aria-label="Chat messages"></div>
-  <div class="status" id="status" role="status" aria-live="polite">Ready.</div>
+  <div class="content" id="content">
+    <!-- Empty state -->
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">🎭</div>
+      <h2>Welcome to the Council</h2>
+      <p>Three AI perspectives, one unified answer.</p>
+      <div class="quick-prompts">
+        <button class="prompt-chip" data-prompt="Help me plan a new feature for this project">📋 Plan a feature</button>
+        <button class="prompt-chip" data-prompt="Debug this code and find potential issues">🐛 Debug code</button>
+        <button class="prompt-chip" data-prompt="Refactor this for better structure and readability">🔧 Refactor</button>
+      </div>
+      <p class="hint">Tip: Use <kbd>Ctrl</kbd>+<kbd>.</kbd> to cycle modes</p>
+    </div>
+
+    <!-- Messages container -->
+    <div class="messages-container" id="messagesContainer">
+      <div id="chat" role="log" aria-live="polite" aria-label="Chat messages"></div>
+
+      <!-- Typing indicator -->
+      <div class="typing-indicator" id="typingIndicator" aria-hidden="true">
+        <div class="typing-dots">
+          <span></span><span></span><span></span>
+        </div>
+        <span class="typing-text">Council is deliberating...</span>
+      </div>
+
+      <!-- Skeleton loading -->
+      <div class="skeleton-message" id="skeletonMessage" aria-hidden="true">
+        <div class="skeleton-header">
+          <div class="skeleton-avatar"></div>
+          <div class="skeleton-title"></div>
+        </div>
+        <div class="skeleton-line"></div>
+        <div class="skeleton-line medium"></div>
+        <div class="skeleton-line short"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <span class="status-text" id="status" role="status" aria-live="polite">Ready.</span>
+    <span class="token-counter" id="tokenCounter">Tokens: 0</span>
+  </div>
 
   <footer>
-    <textarea id="input" placeholder="Ask the council… (Ctrl+Enter to send)" aria-label="Message input" autofocus></textarea>
-    <button class="primary" id="send" aria-label="Send message to council">Send</button>
+    <div class="input-row">
+      <textarea id="input" placeholder="Ask the council... (Ctrl+Enter to send)" aria-label="Message input" autofocus></textarea>
+      <button class="primary" id="send" aria-label="Send message to council">Send</button>
+    </div>
   </footer>
+
+  <div class="info-footer">
+    <div class="engine-info">
+      <span class="engine-label">Engine:</span>
+      <span class="engine-value" id="engineValue">embedded</span>
+      <span class="model-name" id="modelName"></span>
+    </div>
+    <div class="workspace-info">
+      <span class="workspace-label">workspace:</span>
+      <span class="workspace-value" id="workspaceValue">—</span>
+    </div>
+  </div>
 </div>
 
 <script nonce="__NONCE__">
@@ -94,18 +846,32 @@
   const chat = document.getElementById('chat');
   const input = document.getElementById('input');
   const statusEl = document.getElementById('status');
-  const modeHint = document.getElementById('modeHint');
-  const workspacePill = document.getElementById('workspacePill');
   const sendBtn = document.getElementById('send');
+  const emptyState = document.getElementById('emptyState');
+  const messagesContainer = document.getElementById('messagesContainer');
+  const typingIndicator = document.getElementById('typingIndicator');
+  const skeletonMessage = document.getElementById('skeletonMessage');
+  const tokenCounter = document.getElementById('tokenCounter');
+  const modeTrigger = document.getElementById('modeTrigger');
+  const modeDropdown = document.getElementById('modeDropdown');
+  const modeSearch = document.getElementById('modeSearch');
+
+  // Mode definitions
+  const MODES = {
+    plan: { icon: '📋', name: 'Plan', desc: 'Architecture and design planning' },
+    refactor: { icon: '🔧', name: 'Refactor', desc: 'Code improvements and cleanup' },
+    debug: { icon: '🐛', name: 'Debug', desc: 'Diagnose and fix issues' },
+    act: { icon: '⚡', name: 'Act', desc: 'Execute direct actions' }
+  };
+  const MODE_ORDER = ['plan', 'refactor', 'debug', 'act'];
 
   let mode = 'plan';
   let isRunning = false;
-  let state = vscode.getState() || { messages: [], mode: 'plan', workspaceName: '' };
+  let totalTokens = 0;
+  let skeletonTimeout = null;
+  let state = vscode.getState() || { messages: [], mode: 'plan', workspaceName: '', tokens: 0 };
   mode = state.mode || 'plan';
-
-  function setStatus(t, loading = false){
-    statusEl.innerHTML = loading ? '<span class="loading"></span>' + escapeHtml(t) : escapeHtml(t);
-  }
+  totalTokens = state.tokens || 0;
 
   function escapeHtml(str) {
     const div = document.createElement('div');
@@ -113,108 +879,312 @@
     return div.innerHTML;
   }
 
+  function setStatus(t) {
+    statusEl.textContent = t;
+  }
+
+  function updateTokens(count) {
+    totalTokens += count;
+    state.tokens = totalTokens;
+    tokenCounter.textContent = 'Tokens: ' + totalTokens.toLocaleString();
+    vscode.setState(state);
+  }
+
   function setLoading(loading) {
     isRunning = loading;
     sendBtn.disabled = loading;
-    sendBtn.textContent = loading ? 'Running…' : 'Send';
+    sendBtn.textContent = loading ? 'Running...' : 'Send';
     input.disabled = loading;
+
+    if (loading) {
+      typingIndicator.classList.add('visible');
+      // Show skeleton after 1 second delay
+      skeletonTimeout = setTimeout(() => {
+        skeletonMessage.classList.add('visible');
+      }, 1000);
+    } else {
+      typingIndicator.classList.remove('visible');
+      skeletonMessage.classList.remove('visible');
+      if (skeletonTimeout) {
+        clearTimeout(skeletonTimeout);
+        skeletonTimeout = null;
+      }
+    }
   }
 
-  function render(){
+  function updateCouncilStatus(member, status) {
+    const capitalizedMember = member.charAt(0).toUpperCase() + member.slice(1);
+    const dotId = 'dot' + capitalizedMember;
+    const statusId = 'status' + capitalizedMember;
+    const dot = document.getElementById(dotId);
+    const statusEl = document.getElementById(statusId);
+    if (!dot) return;
+
+    dot.classList.remove('pending', 'running', 'success', 'error', 'skipped');
+    dot.classList.add(status);
+
+    // Update screen reader text
+    if (statusEl) {
+      statusEl.textContent = status;
+    }
+  }
+
+  function resetCouncilStatus() {
+    ['codex', 'claude', 'gemini'].forEach(m => {
+      updateCouncilStatus(m, 'pending');
+    });
+  }
+
+  function render() {
+    const hasMessages = state.messages.length > 0;
+
+    if (hasMessages) {
+      emptyState.classList.add('hidden');
+      messagesContainer.classList.add('visible');
+    } else {
+      emptyState.classList.remove('hidden');
+      messagesContainer.classList.remove('visible');
+    }
+
     chat.innerHTML = '';
-    for(const m of state.messages){
+    for (const m of state.messages) {
       const div = document.createElement('div');
       div.className = 'msg ' + (m.role === 'user' ? 'user' : 'ai');
+
       const meta = document.createElement('div');
       meta.className = 'meta';
+
       const roleSpan = document.createElement('span');
       roleSpan.textContent = m.role === 'user' ? 'You' : 'Council';
+
       const timeSpan = document.createElement('span');
       timeSpan.textContent = new Date(m.ts).toLocaleTimeString();
+
       meta.appendChild(roleSpan);
       meta.appendChild(timeSpan);
+
       const pre = document.createElement('pre');
       pre.textContent = m.content;
+
       div.appendChild(meta);
       div.appendChild(pre);
       chat.appendChild(div);
     }
-    modeHint.textContent = 'mode: ' + mode;
-    workspacePill.textContent = 'workspace: ' + (state.workspaceName || '—');
+
+    document.getElementById('workspaceValue').textContent = state.workspaceName || '—';
+    tokenCounter.textContent = 'Tokens: ' + totalTokens.toLocaleString();
     vscode.setState(state);
     chat.scrollTop = chat.scrollHeight;
   }
 
-  function setMode(newMode){
-    mode = newMode;
-    state.mode = mode;
-    document.querySelectorAll('.toggle').forEach(btn => {
-      const isActive = btn.dataset.mode === mode;
-      btn.classList.toggle('active', isActive);
-      btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  function updateModeUI() {
+    const modeInfo = MODES[mode];
+    document.getElementById('currentModeIcon').textContent = modeInfo.icon;
+    document.getElementById('currentModeName').textContent = modeInfo.name;
+    document.getElementById('currentModeDesc').textContent = modeInfo.desc;
+
+    document.querySelectorAll('.mode-option').forEach(opt => {
+      const isActive = opt.dataset.mode === mode;
+      opt.classList.toggle('active', isActive);
+      opt.setAttribute('aria-selected', isActive ? 'true' : 'false');
     });
-    render();
   }
 
-  document.getElementById('modes').addEventListener('click', (e) => {
-    const btn = e.target.closest('.toggle');
-    if(!btn || isRunning) return;
-    setMode(btn.dataset.mode);
+  function setMode(newMode) {
+    if (!MODES[newMode]) return;
+    mode = newMode;
+    state.mode = mode;
+    updateModeUI();
+    closeDropdown();
+    vscode.setState(state);
+  }
+
+  function cycleMode(direction) {
+    const currentIndex = MODE_ORDER.indexOf(mode);
+    const newIndex = (currentIndex + direction + MODE_ORDER.length) % MODE_ORDER.length;
+    setMode(MODE_ORDER[newIndex]);
+  }
+
+  function openDropdown() {
+    modeDropdown.classList.add('open');
+    modeTrigger.classList.add('open');
+    modeTrigger.setAttribute('aria-expanded', 'true');
+    modeSearch.value = '';
+    filterModes('');
+    modeSearch.focus();
+  }
+
+  function closeDropdown() {
+    modeDropdown.classList.remove('open');
+    modeTrigger.classList.remove('open');
+    modeTrigger.setAttribute('aria-expanded', 'false');
+  }
+
+  function filterModes(query) {
+    const q = query.toLowerCase();
+    document.querySelectorAll('.mode-option').forEach(opt => {
+      const name = opt.querySelector('.name').textContent.toLowerCase();
+      const desc = opt.querySelector('.desc').textContent.toLowerCase();
+      const matches = name.includes(q) || desc.includes(q);
+      opt.classList.toggle('hidden', !matches);
+    });
+  }
+
+  // Mode dropdown events
+  modeTrigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (isRunning) return;
+    if (modeDropdown.classList.contains('open')) {
+      closeDropdown();
+    } else {
+      openDropdown();
+    }
   });
 
-  document.getElementById('send').addEventListener('click', () => {
-    if(isRunning) return;
+  modeSearch.addEventListener('input', (e) => {
+    filterModes(e.target.value);
+  });
+
+  modeSearch.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeDropdown();
+      modeTrigger.focus();
+    }
+  });
+
+  modeDropdown.addEventListener('click', (e) => {
+    const option = e.target.closest('.mode-option');
+    if (option && !option.classList.contains('hidden')) {
+      setMode(option.dataset.mode);
+    }
+  });
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!modeTrigger.contains(e.target) && !modeDropdown.contains(e.target)) {
+      closeDropdown();
+    }
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    // Ctrl+. to cycle to next mode
+    if (e.ctrlKey && !e.shiftKey && e.key === '.') {
+      e.preventDefault();
+      if (!isRunning) cycleMode(1);
+    }
+    // Ctrl+Shift+. to cycle to previous mode
+    if (e.ctrlKey && e.shiftKey && e.key === '.') {
+      e.preventDefault();
+      if (!isRunning) cycleMode(-1);
+    }
+  });
+
+  // Send message
+  function sendMessage() {
+    if (isRunning) return;
     const text = input.value.trim();
-    if(!text) return;
-    state.messages.push({ role:'user', content:text, ts: Date.now() });
+    if (!text) return;
+
+    state.messages.push({ role: 'user', content: text, ts: Date.now() });
     input.value = '';
     render();
     setLoading(true);
-    setStatus('Running council…', true);
+    setStatus('Running council...');
+    resetCouncilStatus();
+
+    const fastMode = document.getElementById('toggleFast')?.checked ?? false;
+    if (fastMode) {
+      updateCouncilStatus('gemini', 'skipped');
+    }
+
     const opts = {
       architect: document.getElementById('toggleArchitect')?.checked ?? true,
       memory: document.getElementById('toggleMemory')?.checked ?? true,
       consensus: document.getElementById('toggleConsensus')?.checked ?? true,
-      fast: document.getElementById('toggleFast')?.checked ?? false
+      fast: fastMode
     };
-    vscode.postMessage({ type:'userMessage', mode, options: opts, text });
-  });
+    vscode.postMessage({ type: 'userMessage', mode, options: opts, text });
+  }
+
+  document.getElementById('send').addEventListener('click', sendMessage);
 
   input.addEventListener('keydown', (e) => {
-    if(e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !isRunning){
-      document.getElementById('send').click();
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !isRunning) {
+      sendMessage();
     }
   });
 
-  document.getElementById('setupBtn').addEventListener('click', () => vscode.postMessage({ type:'setup' }));
-  document.getElementById('resetMemoryBtn').addEventListener('click', () => vscode.postMessage({ type:'resetMemory' }));
+  // Quick prompts
+  document.querySelectorAll('.prompt-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const prompt = chip.dataset.prompt;
+      if (prompt) {
+        input.value = prompt;
+        input.focus();
+      }
+    });
+  });
 
+  // Setup and reset
+  document.getElementById('setupBtn').addEventListener('click', () => vscode.postMessage({ type: 'setup' }));
+  document.getElementById('resetMemoryBtn').addEventListener('click', () => vscode.postMessage({ type: 'resetMemory' }));
+
+  // Message handling from extension
   window.addEventListener('message', (event) => {
     const msg = event.data;
-    if(msg.type === 'workspaceInfo'){
+
+    if (msg.type === 'workspaceInfo') {
       state.workspaceName = msg.workspaceName || '';
       render();
       return;
     }
-    if(msg.type === 'councilResult'){
-      state.messages.push({ role:'ai', content: msg.text, ts: Date.now() });
+
+    if (msg.type === 'engineInfo') {
+      document.getElementById('engineValue').textContent = msg.engine || 'embedded';
+      document.getElementById('modelName').textContent = msg.model ? `(${msg.model})` : '';
+      return;
+    }
+
+    if (msg.type === 'councilProgress') {
+      updateCouncilStatus(msg.member, msg.status);
+      return;
+    }
+
+    if (msg.type === 'councilResult') {
+      state.messages.push({ role: 'ai', content: msg.text, ts: Date.now() });
       setLoading(false);
       setStatus('Ready.');
+      ['codex', 'claude', 'gemini'].forEach(m => {
+        const dot = document.getElementById('dot' + m.charAt(0).toUpperCase() + m.slice(1));
+        if (dot && !dot.classList.contains('skipped')) {
+          dot.classList.remove('pending', 'running');
+          dot.classList.add('success');
+        }
+      });
+      if (msg.tokens) {
+        updateTokens(msg.tokens);
+      }
       render();
       input.focus();
       return;
     }
-    if(msg.type === 'status'){
-      const isRunningStatus = msg.text.toLowerCase().includes('running');
-      setStatus(msg.text, isRunningStatus);
-      if(!isRunningStatus && isRunning) {
-        setLoading(false);
-      }
+
+    if (msg.type === 'status') {
+      setStatus(msg.text);
+      return;
+    }
+
+    if (msg.type === 'tokenUpdate') {
+      updateTokens(msg.tokens);
+      return;
     }
   });
 
+  // Initialize
+  updateModeUI();
   render();
-  vscode.postMessage({ type:'ready' });
+  vscode.postMessage({ type: 'ready' });
 </script>
 </body>
 </html>

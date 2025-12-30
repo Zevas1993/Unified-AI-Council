@@ -46,9 +46,29 @@ export class Settings {
     return Number.isFinite(n) && n > 10 ? n : 500;
   }
 
-  orchestratorEngine(): 'nano' | 'ollama' {
-    const v = String(this.cfg().get('orchestrator.engine') ?? 'nano').trim();
-    return v === 'ollama' ? 'ollama' : 'nano';
+  orchestratorEngine(): 'embedded' | 'nano' | 'ollama' {
+    const v = String(this.cfg().get('orchestrator.engine') ?? 'embedded').trim();
+    if (v === 'ollama') return 'ollama';
+    if (v === 'nano') return 'nano';
+    return 'embedded';
+  }
+
+  embeddedEnabled(): boolean {
+    return Boolean(this.cfg().get('embedded.enabled') ?? true);
+  }
+
+  embeddedModelId(): string {
+    return String(this.cfg().get('embedded.modelId') ?? 'onnx-community/Qwen2.5-Coder-0.5B-Instruct').trim();
+  }
+
+  embeddedMaxTokens(): number {
+    const n = Number(this.cfg().get('embedded.maxTokens') ?? 256);
+    return Number.isFinite(n) && n > 10 ? n : 256;
+  }
+
+  embeddedTemperature(): number {
+    const n = Number(this.cfg().get('embedded.temperature') ?? 0.3);
+    return Number.isFinite(n) && n >= 0 && n <= 2 ? n : 0.3;
   }
 
   ollamaConfig() {

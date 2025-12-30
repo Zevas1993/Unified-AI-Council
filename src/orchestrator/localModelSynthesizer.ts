@@ -26,9 +26,27 @@ type OllamaGenerateResponse = {
   error?: string;
 };
 
-function normalizeBaseUrl(url: string): string {
-  const u = url.trim().replace(/\/+$/, '');
-  return u.length ? u : 'http://127.0.0.1:11434';
+/**
+ * Normalize and validate Ollama base URL.
+ * Only allows http/https protocols for security (prevents SSRF).
+ */
+function normalizeBaseUrl(url: string): { url: string; error?: string } {
+  const trimmed = url.trim().replace(/\/+$/, '');
+  const defaultUrl = 'http://127.0.0.1:11434';
+
+  if (!trimmed) {
+    return { url: defaultUrl };
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return { url: defaultUrl, error: `Only http/https protocols allowed (got ${parsed.protocol})` };
+    }
+    return { url: trimmed };
+  } catch {
+    return { url: defaultUrl, error: 'Invalid URL format' };
+  }
 }
 
 /**
@@ -41,8 +59,11 @@ export class LocalModelSynthesizer {
   constructor(private output: vscode.OutputChannel) {}
 
   async synthesizeWithOllama(config: OllamaConfig, input: SynthesisInput): Promise<string> {
-    const baseUrl = normalizeBaseUrl(config.baseUrl);
-    const url = `${baseUrl}/api/generate`;
+    const normalized = normalizeBaseUrl(config.baseUrl);
+    if (normalized.error) {
+      this.output.appendLine(`[UAC] URL validation warning: ${normalized.error}. Using default.`);
+    }
+    const url = `${normalized.url}/api/generate`;
 
     const fullPrompt = [
       `You are the Orchestrator of a 3-member AI coding council.`,
@@ -77,11 +98,27 @@ export class LocalModelSynthesizer {
 
     // VS Code extension host is Node >= 18/20, so global fetch exists.
     // If not, this will throw, and orchestrator will fall back.
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(body),
-    });
+    const controller = new AbortController();
+    const timeoutMs = 30000; // 30 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+    } catch (err) {
+      clearTimeout(timeoutId);
+      if (err instanceof Error && err.name === 'AbortError') {
+        throw new Error(`Ollama request timed out after ${timeoutMs / 1000}s`);
+      }
+      throw err;
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!res.ok) {
       const text = await res.text().catch((e) => {

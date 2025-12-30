@@ -12,7 +12,13 @@ export class WslCliRunner {
   ) {}
 
   public async openInteractiveSetupTerminal(member: CouncilMember): Promise<void> {
-    const cmd = this.getCliCommand(member);
+    const cmdResult = this.getCliCommand(member);
+    if (cmdResult.error) {
+      this.output.appendLine(`[setup] ${cmdResult.error}`);
+      throw new Error(cmdResult.error);
+    }
+
+    const cmd = cmdResult.cmd;
     const distro = this.settings.wslDistro();
     const shell = this.settings.wslShell();
 
@@ -34,19 +40,26 @@ export class WslCliRunner {
     councilPrompt: string,
     timeoutMs: number
   ): Promise<string> {
-    const cmd = this.getCliCommand(member);
+    const cmdResult = this.getCliCommand(member);
+
+    // Graceful degradation: return error message instead of crashing the entire council
+    if (cmdResult.error) {
+      this.output.appendLine(`[${member}] ${cmdResult.error}`);
+      return `[${member}] Configuration error: ${cmdResult.error}. Please check your settings.`;
+    }
+
     const distro = this.settings.wslDistro();
     const shell = this.settings.wslShell();
 
     const argsBase = distro ? ['-d', distro, '-e', shell, '-lc'] : ['-e', shell, '-lc'];
 
     const payload = buildPayload(role, councilPrompt);
-    const script = makeRunnerScript(cmd);
+    const script = makeRunnerScript(cmdResult.cmd);
 
     return await runWsl(payload, ['wsl.exe', ...argsBase, script], timeoutMs, this.output, member);
   }
 
-  private getCliCommand(member: CouncilMember): string {
+  private getCliCommand(member: CouncilMember): { cmd: string; error?: string } {
     const res = member === 'codex'
       ? this.settings.codexCommand()
       : member === 'claude'
@@ -54,10 +67,10 @@ export class WslCliRunner {
         : this.settings.geminiCommand();
 
     if (res.error) {
-      throw new Error(`[${member}] Invalid CLI command in settings: ${res.error}`);
+      return { cmd: '', error: `Invalid CLI command in settings: ${res.error}` };
     }
 
-    return res.cmd;
+    return { cmd: res.cmd };
   }
 }
 
@@ -119,8 +132,11 @@ async function runWsl(
 
     let stdout = '';
     let stderr = '';
+    let resolved = false; // Prevent race condition between timeout and close
 
     const timer = setTimeout(() => {
+      if (resolved) return;
+      resolved = true;
       try {
         child.kill();
       } catch (e) {
@@ -133,11 +149,15 @@ async function runWsl(
     child.stderr.on('data', (d) => { stderr += d.toString(); });
 
     child.on('error', (e) => {
+      if (resolved) return;
+      resolved = true;
       clearTimeout(timer);
       reject(e);
     });
 
     child.on('close', (code) => {
+      if (resolved) return;
+      resolved = true;
       clearTimeout(timer);
       const out = (stdout + (stderr ? `\n[stderr]\n${stderr}` : '')).trim();
       resolve(out || `[${member}] (no output) exit=${code ?? 'unknown'}`);

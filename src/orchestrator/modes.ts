@@ -1,5 +1,8 @@
 export type CouncilMode = 'plan' | 'refactor' | 'debug' | 'act';
 
+/** Valid council modes array - single source of truth */
+export const VALID_MODES: readonly CouncilMode[] = ['plan', 'refactor', 'debug', 'act'] as const;
+
 export type CliRole = {
   systemRole: string;
   instruction: string;

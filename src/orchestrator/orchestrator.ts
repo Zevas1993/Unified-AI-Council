@@ -6,6 +6,7 @@ import { NanoOrchestrator } from './nanoOrchestrator';
 import { ConsensusSynthesizer } from './synthesizer';
 import { Settings } from '../settings/settings';
 import { LocalModelSynthesizer } from './localModelSynthesizer';
+import { EmbeddedLlm } from '../llm/embeddedLlm';
 
 export type { CouncilMode };
 
@@ -26,6 +27,8 @@ export class CouncilOrchestrator {
   private readonly nano: NanoOrchestrator;
   private readonly synth: ConsensusSynthesizer;
   private readonly localModel: LocalModelSynthesizer;
+  private embeddedLlm: EmbeddedLlm | null = null;
+  private disposed = false;
 
   constructor(
     private readonly output: vscode.OutputChannel,
@@ -36,6 +39,42 @@ export class CouncilOrchestrator {
     this.nano = new NanoOrchestrator(this.output);
     this.synth = new ConsensusSynthesizer(this.output);
     this.localModel = new LocalModelSynthesizer(this.output);
+  }
+
+  /**
+   * Get the settings instance (for webview to read engine info).
+   */
+  public getSettings(): Settings {
+    return this.settings;
+  }
+
+  /**
+   * Get or create the embedded LLM instance (lazy initialization).
+   */
+  private getEmbeddedLlm(): EmbeddedLlm | null {
+    if (!this.settings.embeddedEnabled()) {
+      return null;
+    }
+
+    if (!this.embeddedLlm) {
+      const modelId = this.settings.embeddedModelId();
+      this.embeddedLlm = new EmbeddedLlm(modelId, this.output);
+    }
+
+    return this.embeddedLlm;
+  }
+
+  /**
+   * Dispose of the embedded LLM and free resources.
+   */
+  public dispose(): void {
+    if (this.disposed) return;
+    this.disposed = true;
+
+    if (this.embeddedLlm) {
+      this.embeddedLlm.dispose();
+      this.embeddedLlm = null;
+    }
   }
 
   public async runSetupWizard(): Promise<void> {
@@ -75,19 +114,58 @@ export class CouncilOrchestrator {
     const fileContext = useMemory ? await this.memory.captureWorkspaceSnapshotHints(ws.uri) : '';
 
     const fallbackResponseContract = this.buildResponseContractString(profile);
+    const engine = this.settings.orchestratorEngine();
+    const embeddedLlm = this.getEmbeddedLlm();
 
-    const { councilPrompt, responseContract } = useArchitect
-      ? this.nano.buildCouncilPrompt({
+    // Build council prompt - use LLM pre-pass if embedded engine is enabled
+    let councilPrompt: string;
+    let responseContract: string;
+
+    if (useArchitect) {
+      if (engine === 'embedded' && embeddedLlm) {
+        try {
+          const maxTokens = this.settings.embeddedMaxTokens();
+          const result = await this.nano.buildCouncilPromptWithLlm(
+            {
+              userText,
+              mode: profile.name,
+              councilGoal: profile.councilGoal,
+              memoryContext,
+              fileContext
+            },
+            embeddedLlm,
+            maxTokens
+          );
+          councilPrompt = result.councilPrompt;
+          responseContract = result.responseContract;
+        } catch (err) {
+          const errMsg = err instanceof Error ? err.message : String(err);
+          this.output.appendLine(`[orchestrator] Embedded LLM pre-pass failed, using heuristic: ${errMsg}`);
+          const result = this.nano.buildCouncilPrompt({
+            userText,
+            mode: profile.name,
+            councilGoal: profile.councilGoal,
+            memoryContext,
+            fileContext
+          });
+          councilPrompt = result.councilPrompt;
+          responseContract = result.responseContract;
+        }
+      } else {
+        const result = this.nano.buildCouncilPrompt({
           userText,
           mode: profile.name,
           councilGoal: profile.councilGoal,
           memoryContext,
           fileContext
-        })
-      : {
-          councilPrompt: `${profile.councilGoal}\n\nUSER:\n${userText}\n\nRespond with the best possible answer for this mode.`,
-          responseContract: fallbackResponseContract
-        };
+        });
+        councilPrompt = result.councilPrompt;
+        responseContract = result.responseContract;
+      }
+    } else {
+      councilPrompt = `${profile.councilGoal}\n\nUSER:\n${userText}\n\nRespond with the best possible answer for this mode.`;
+      responseContract = fallbackResponseContract;
+    }
 
     const timeoutMs = this.settings.cliTimeoutMs();
 
@@ -114,49 +192,62 @@ export class CouncilOrchestrator {
       return `${header}\n\n---\n\n### Codex\n${codexText}\n\n---\n\n### Claude Code\n${claudeText}\n\n---\n\n### Gemini\n${geminiText}`;
     }
 
-    const heuristicFinal = this.synth.synthesize({
+    const synthesisInput = {
       mode: profile.name,
       rubric: profile.synthesis.rubric,
       outputStyle: profile.synthesis.outputStyle,
       responseContract,
       userText,
       council: { codex: codexText, claude: claudeText, gemini: geminiText }
-    });
+    };
 
-    // Optional local-model synthesis (embedded orchestrator).
-    // If configured and available, we let a local model produce the final
-    // merged answer; otherwise we fall back to the heuristic synthesizer.
-    let final = heuristicFinal;
-    if (this.settings.orchestratorEngine() === 'ollama') {
+    // Synthesize final response based on engine
+    let final: string;
+
+    if (engine === 'embedded' && embeddedLlm) {
+      // Use embedded LLM for synthesis
+      try {
+        const maxTokens = this.settings.embeddedMaxTokens();
+        final = await this.synth.synthesizeWithLlm(synthesisInput, embeddedLlm, maxTokens);
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        this.output.appendLine(`[orchestrator] Embedded synthesis failed, using heuristic: ${errMsg}`);
+        final = this.synth.synthesize(synthesisInput);
+      }
+    } else if (engine === 'ollama') {
+      // Use Ollama for synthesis
       try {
         const cfg = this.settings.ollamaConfig();
-	        const councilNotes = `Codex:\n${codexText}\n\nClaude Code:\n${claudeText}\n\nGemini:\n${geminiText}`;
-	        const prompt = [
-	          `Mode: ${profile.name}`,
-	          `Council goal: ${profile.councilGoal}`,
-	          '',
-	          'User request:',
-	          userText.trim(),
-	          '',
-	          memoryContext ? 'Project memory:' : '',
-	          memoryContext ? memoryContext.trim() : '',
-	          '',
-	          fileContext ? 'Workspace hints:' : '',
-	          fileContext ? fileContext.trim() : ''
-	        ].filter(Boolean).join('\n');
-        const refined = await this.localModel.synthesizeWithOllama(
+        const councilNotes = `Codex:\n${codexText}\n\nClaude Code:\n${claudeText}\n\nGemini:\n${geminiText}`;
+        const prompt = [
+          `Mode: ${profile.name}`,
+          `Council goal: ${profile.councilGoal}`,
+          '',
+          'User request:',
+          userText.trim(),
+          '',
+          memoryContext ? 'Project memory:' : '',
+          memoryContext ? memoryContext.trim() : '',
+          '',
+          fileContext ? 'Workspace hints:' : '',
+          fileContext ? fileContext.trim() : ''
+        ].filter(Boolean).join('\n');
+        final = await this.localModel.synthesizeWithOllama(
           cfg,
           {
-	            mode: profile.name,
-	            prompt,
-	            responseContract,
-	            councilNotes
+            mode: profile.name,
+            prompt,
+            responseContract,
+            councilNotes
           },
         );
-        final = refined;
       } catch (e) {
         this.output.appendLine(`[orchestrator] Ollama synthesis failed; falling back. ${String(e)}`);
+        final = this.synth.synthesize(synthesisInput);
       }
+    } else {
+      // Use heuristic synthesis (nano engine)
+      final = this.synth.synthesize(synthesisInput);
     }
 
     if (useMemory) {
@@ -172,7 +263,7 @@ export class CouncilOrchestrator {
     return final;
   }
 
-	  private buildResponseContractString(profile: ModeProfile): string {
+  private buildResponseContractString(profile: ModeProfile): string {
     const required = profile.synthesis.requiredSections?.length
       ? `Required sections (in order):\n- ${profile.synthesis.requiredSections.join('\n- ')}`
       : 'No required sections.';

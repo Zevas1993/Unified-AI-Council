@@ -37,7 +37,8 @@
     "onView:unifiedAiCouncil.sidebar",
     "onCommand:unifiedAiCouncil.open",
     "onCommand:unifiedAiCouncil.setup",
-    "onCommand:unifiedAiCouncil.resetMemory"
+    "onCommand:unifiedAiCouncil.resetMemory",
+    "onCommand:unifiedAiCouncil.validateConfig"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -70,6 +71,10 @@
       {
         "command": "unifiedAiCouncil.resetMemory",
         "title": "Unified AI Council: Reset Project Memory"
+      },
+      {
+        "command": "unifiedAiCouncil.validateConfig",
+        "title": "Unified AI Council: Validate Configuration"
       }
     ],
     "configuration": {
@@ -112,12 +117,33 @@
         },
         "unifiedAiCouncil.orchestrator.engine": {
           "type": "string",
-          "default": "nano",
+          "default": "embedded",
           "enum": [
+            "embedded",
             "nano",
             "ollama"
           ],
-          "description": "Orchestrator engine. 'nano' is embedded. 'ollama' uses a user-local Ollama model for final synthesis (never sends data to a cloud API)."
+          "description": "Orchestrator engine. 'embedded' uses Transformers.js with a local ONNX model. 'nano' uses heuristic templates. 'ollama' uses a user-local Ollama server."
+        },
+        "unifiedAiCouncil.embedded.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the embedded nano LLM for prompt shaping and synthesis."
+        },
+        "unifiedAiCouncil.embedded.modelId": {
+          "type": "string",
+          "default": "onnx-community/Qwen2.5-Coder-0.5B-Instruct",
+          "description": "Hugging Face model ID for the embedded LLM (must have ONNX weights)."
+        },
+        "unifiedAiCouncil.embedded.maxTokens": {
+          "type": "number",
+          "default": 256,
+          "description": "Maximum tokens to generate with the embedded LLM."
+        },
+        "unifiedAiCouncil.embedded.temperature": {
+          "type": "number",
+          "default": 0.3,
+          "description": "Sampling temperature for the embedded LLM. Lower = more deterministic."
         },
         "unifiedAiCouncil.orchestrator.ollama.baseUrl": {
           "type": "string",
@@ -169,5 +195,8 @@
     "typescript-eslint": "^8.51.0",
     "vitest": "^2.1.8",
     "vsce": "^2.15.0"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^3.8.1"
   }
 }

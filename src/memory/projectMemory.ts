@@ -24,7 +24,14 @@ export class ProjectMemory {
     const root = this.getWorkspaceRoot();
     if (!root) return null;
     const dir = path.join(root, '.unified-ai-council');
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    if (!fs.existsSync(dir)) {
+      try {
+        fs.mkdirSync(dir, { recursive: true });
+      } catch (err) {
+        this.output.appendLine(`[memory] Failed to create storage directory: ${err instanceof Error ? err.message : String(err)}`);
+        return null;
+      }
+    }
     return dir;
   }
 
@@ -36,7 +43,14 @@ export class ProjectMemory {
   public async resetForWorkspace(): Promise<void> {
     const p = this.getEntriesPath();
     if (!p) return;
-    if (fs.existsSync(p)) fs.unlinkSync(p);
+    if (fs.existsSync(p)) {
+      try {
+        fs.unlinkSync(p);
+      } catch (err) {
+        this.output.appendLine(`[memory] Failed to reset memory file: ${err instanceof Error ? err.message : String(err)}`);
+        return;
+      }
+    }
     this.output.appendLine('[memory] reset');
   }
 
@@ -54,14 +68,32 @@ export class ProjectMemory {
       council: entry.council
     };
 
-    fs.appendFileSync(p, JSON.stringify(full) + '\n', 'utf8');
+    try {
+      fs.appendFileSync(p, JSON.stringify(full) + '\n', 'utf8');
+    } catch (err) {
+      this.output.appendLine(`[memory] Failed to write entry: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }
 
   public async buildContextForPrompt(userText: string): Promise<string> {
     const p = this.getEntriesPath();
     if (!p || !fs.existsSync(p)) return '(no saved project memory yet)';
 
-    const lines = fs.readFileSync(p, 'utf8').split(/\r?\n/).filter(Boolean);
+    // Check file size to avoid loading excessively large files
+    let lines: string[];
+    try {
+      const stats = fs.statSync(p);
+      const maxSize = 10 * 1024 * 1024; // 10MB limit
+      if (stats.size > maxSize) {
+        this.output.appendLine(`[memory] Memory file too large (${Math.round(stats.size / 1024 / 1024)}MB), skipping context`);
+        return '(memory file too large)';
+      }
+      lines = fs.readFileSync(p, 'utf8').split(/\r?\n/).filter(Boolean);
+    } catch (err) {
+      this.output.appendLine(`[memory] Failed to read memory file: ${err instanceof Error ? err.message : String(err)}`);
+      return '(unable to read project memory)';
+    }
+
     const entries = lines.slice(-30).map(safeParse).filter(Boolean) as MemoryEntry[];
 
     const keywords = extractKeywords(userText);

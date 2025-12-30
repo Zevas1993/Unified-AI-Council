@@ -150,9 +150,9 @@ describe('Settings', () => {
   });
 
   describe('orchestratorEngine', () => {
-    it('returns nano as default', () => {
+    it('returns embedded as default', () => {
       mockGet.mockReturnValue(undefined);
-      expect(settings.orchestratorEngine()).toBe('nano');
+      expect(settings.orchestratorEngine()).toBe('embedded');
     });
 
     it('returns ollama when configured', () => {
@@ -160,9 +160,56 @@ describe('Settings', () => {
       expect(settings.orchestratorEngine()).toBe('ollama');
     });
 
-    it('returns nano for invalid values', () => {
-      mockGet.mockReturnValue('invalid');
+    it('returns nano when configured', () => {
+      mockGet.mockReturnValue('nano');
       expect(settings.orchestratorEngine()).toBe('nano');
+    });
+
+    it('returns embedded for invalid values', () => {
+      mockGet.mockReturnValue('invalid');
+      expect(settings.orchestratorEngine()).toBe('embedded');
+    });
+  });
+
+  describe('embedded LLM settings', () => {
+    it('embeddedEnabled returns true by default', () => {
+      mockGet.mockReturnValue(undefined);
+      expect(settings.embeddedEnabled()).toBe(true);
+    });
+
+    it('embeddedEnabled returns configured value', () => {
+      mockGet.mockReturnValue(false);
+      expect(settings.embeddedEnabled()).toBe(false);
+    });
+
+    it('embeddedModelId returns default model', () => {
+      mockGet.mockReturnValue(undefined);
+      expect(settings.embeddedModelId()).toBe('onnx-community/Qwen2.5-Coder-0.5B-Instruct');
+    });
+
+    it('embeddedModelId returns configured model', () => {
+      mockGet.mockReturnValue('custom/model');
+      expect(settings.embeddedModelId()).toBe('custom/model');
+    });
+
+    it('embeddedMaxTokens returns default 256', () => {
+      mockGet.mockReturnValue(undefined);
+      expect(settings.embeddedMaxTokens()).toBe(256);
+    });
+
+    it('embeddedMaxTokens rejects values below 10', () => {
+      mockGet.mockReturnValue(5);
+      expect(settings.embeddedMaxTokens()).toBe(256);
+    });
+
+    it('embeddedTemperature returns default 0.3', () => {
+      mockGet.mockReturnValue(undefined);
+      expect(settings.embeddedTemperature()).toBe(0.3);
+    });
+
+    it('embeddedTemperature rejects values outside 0-2 range', () => {
+      mockGet.mockReturnValue(3);
+      expect(settings.embeddedTemperature()).toBe(0.3);
     });
   });
 
